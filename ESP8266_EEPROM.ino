@@ -87,14 +87,28 @@ void startAPMode() {
 }
 
 String getHTML() {
-  // Generate the HTML form for the configuration page
-  return "<html><body>"
+  // Generate the HTML form for the configuration page with added CSS for styling
+  return "<html><head>"
+         "<style>"
+         "body { font-family: Arial, sans-serif;}"
+         "form { margin: 0 auto; max-width: 400px;}"
+         "label { display: block; margin-bottom: 10px;}"
+         "input[type='text'], input[type='password'], input[type='radio'] { width: 100%; padding: 10px; margin-bottom: 10px;}"
+         "input[type='submit'] { width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer;}"
+         "</style>"
+         "</head><body>"
          "<form action='/save' method='POST'>"
-         "SSID: <input type='text' name='ssid'><br>"
-         "Password: <input type='text' name='password'><br>"
-         "Device ID: <input type='text' name='deviceID'><br>"
-         "Output Status: <input type='radio' name='outputStatus' value='on'> On"
-         "<input type='radio' name='outputStatus' value='off'> Off<br>"
+         "<label for='ssid'>SSID:</label>"
+         "<input type='text' id='ssid' name='ssid'><br>"
+         "<label for='password'>Password:</label>"
+         "<input type='password' id='password' name='password'><br>"
+         "<label for='deviceID'>Device ID:</label>"
+         "<input type='text' id='deviceID' name='deviceID'><br>"
+         "<label for='outputStatus'>Output Status:</label>"
+         "<input type='radio' id='on' name='outputStatus' value='on'>"
+         "<label for='on'>On</label>"
+         "<input type='radio' id='off' name='outputStatus' value='off'>"
+         "<label for='off'>Off</label><br>"
          "<input type='submit' value='Save'>"
          "</form>"
          "</body></html>";
