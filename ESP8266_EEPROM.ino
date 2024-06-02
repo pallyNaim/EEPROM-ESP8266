@@ -1,12 +1,16 @@
+// Include necessary libraries for WiFi, web server, EEPROM, and servo functionality
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
 #include <Servo.h>
 
+// Define the size of the EEPROM storage
 #define EEPROM_SIZE 512
 
-#define SERVO_PIN D5 // Use D5 (GPIO14) which supports PWM
+// Define the pin for the servo motor
+#define SERVO_PIN D5 // Use D5
 
+// Define a structure to hold the configuration settings
 struct Config {
   char ssid[32];
   char password[32];
@@ -14,16 +18,16 @@ struct Config {
   bool outputStatus;
 };
 
-Config config;
-ESP8266WebServer server(80);
-Servo myServo;
+Config config; // Create an instance of the configuration structure
+ESP8266WebServer server(80); // Create a web server instance on port 80
+Servo myServo; // Create a servo instance
 bool servoStatus = false; // Global flag to track servo status
 
 void setup() {
-  Serial.begin(115200);
-  EEPROM.begin(EEPROM_SIZE);
+  Serial.begin(115200); // Start the serial communication for debugging
+  EEPROM.begin(EEPROM_SIZE); // Initialize the EEPROM with defined size
 
-  myServo.attach(SERVO_PIN);
+  myServo.attach(SERVO_PIN); // Attach the servo to the defined pin
   myServo.write(0); // Initialize servo to 0 degrees
 
   // Load configuration from EEPROM
@@ -31,14 +35,16 @@ void setup() {
 
   // Check if WiFi credentials are available
   if (strlen(config.ssid) == 0 || strlen(config.password) == 0) {
-    startAPMode();
+    startAPMode(); // Start Access Point mode if credentials are missing
   } else {
-    connectToWiFi();
+    connectToWiFi(); // Connect to WiFi if credentials are available
   }
 }
 
 void loop() {
-  server.handleClient();
+  server.handleClient(); // Handle client requests to the web server
+
+  // Control the servo motor based on the global flag
   if (servoStatus) {
     myServo.write(180); // Turn servo to 180 degrees
     delay(1000); // Wait for 1 second
@@ -48,37 +54,40 @@ void loop() {
 }
 
 void startAPMode() {
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP("ESP8266_Config");
+  WiFi.mode(WIFI_AP); // Set WiFi mode to Access Point
+  WiFi.softAP("ESP8266_Config"); // Start the Access Point with SSID "ESP8266_Config"
 
-  IPAddress IP = WiFi.softAPIP();
+  IPAddress IP = WiFi.softAPIP(); // Get the IP address of the Access Point
   Serial.print("AP IP address: ");
   Serial.println(IP);
 
+  // Define the web server routes and handlers
   server.on("/", HTTP_GET, []() {
-    server.send(200, "text/html", getHTML());
+    server.send(200, "text/html", getHTML()); // Serve the configuration page
   });
 
   server.on("/save", HTTP_POST, []() {
+    // Handle the form submission and save the configuration
     if (server.hasArg("ssid") && server.hasArg("password") && server.hasArg("deviceID") && server.hasArg("outputStatus")) {
       strcpy(config.ssid, server.arg("ssid").c_str());
       strcpy(config.password, server.arg("password").c_str());
       strcpy(config.deviceID, server.arg("deviceID").c_str());
       config.outputStatus = server.arg("outputStatus") == "on";
 
-      saveConfig();
+      saveConfig(); // Save the configuration to EEPROM
       server.send(200, "text/html", "Configuration saved. Restarting...");
       delay(1000);
-      ESP.restart();
+      ESP.restart(); // Restart the ESP8266 to apply the new settings
     } else {
-      server.send(400, "text/html", "Invalid input.");
+      server.send(400, "text/html", "Invalid input."); // Send an error message for invalid input
     }
   });
 
-  server.begin();
+  server.begin(); // Start the web server
 }
 
 String getHTML() {
+  // Generate the HTML form for the configuration page
   return "<html><body>"
          "<form action='/save' method='POST'>"
          "SSID: <input type='text' name='ssid'><br>"
@@ -92,25 +101,29 @@ String getHTML() {
 }
 
 void loadConfig() {
+  // Load the configuration from EEPROM into the config structure
   EEPROM.get(0, config);
   if (isValidConfig(config)) {
     Serial.println("Loaded configuration from EEPROM.");
   } else {
     Serial.println("Invalid configuration. Using defaults.");
-    memset(&config, 0, sizeof(config));
+    memset(&config, 0, sizeof(config)); // Clear the config structure if the data is invalid
   }
 }
 
 void saveConfig() {
+  // Save the configuration to EEPROM
   EEPROM.put(0, config);
   EEPROM.commit();
 }
 
 bool isValidConfig(Config &conf) {
+  // Validate the configuration data
   return strlen(conf.ssid) > 0 && strlen(conf.password) > 0;
 }
 
 void connectToWiFi() {
+  // Attempt to connect to the WiFi network using the stored credentials
   WiFi.mode(WIFI_STA);
   WiFi.begin(config.ssid, config.password);
 
@@ -126,14 +139,15 @@ void connectToWiFi() {
     Serial.println("Connected!");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
-    setOutputStatus(config.outputStatus);
+    setOutputStatus(config.outputStatus); // Set the initial output status
   } else {
     Serial.println("Failed to connect. Starting AP mode...");
-    startAPMode();
+    startAPMode(); // Start Access Point mode if connection fails
   }
 }
 
 void setOutputStatus(bool status) {
+  // Set the output status and update the servo control flag
   Serial.print("Setting output status: ");
   Serial.println(status ? "ON" : "OFF");
   servoStatus = status; // Update the global flag
